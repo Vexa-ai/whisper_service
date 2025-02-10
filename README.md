@@ -1,10 +1,11 @@
 # Whisper Service
 
-A GPU-accelerated speech-to-text service using OpenAI's Whisper model (large-v3), implemented with Ray Serve and FastAPI.
+A GPU-accelerated speech-to-text service leveraging [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Ray Serve. This service utilizes OpenAI's Whisper model (large-v3) optimized with faster-whisper for significantly improved transcription speeds and reduced resource consumption, while Ray Serve and FastAPI enable scalable and low-latency real-time processing.
 
 ## Features
 
 - Fast speech-to-text transcription using Whisper large-v3 model
+- Optimized speech-to-text transcription using Whisper large-v3 model with faster-whisper enhancements
 - GPU acceleration with CUDA support
 - Streaming capability
 - Containerized deployment with Docker
@@ -60,3 +61,17 @@ python test_client.py
 - GPU acceleration is required for reasonable performance
 - The service uses shared memory of 10.24GB to handle large audio files
 - Multiple GPU devices can be utilized by adjusting the `count` parameter in docker-compose.yml 
+
+## Benefits of Integrating faster-whisper with Ray Serve
+
+By combining [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with Ray Serve, this service achieves:
+
+- **High Performance:** faster-whisper employs CTranslate2 to re-implement OpenAI's Whisper, offering up to 4x faster transcription speeds while reducing memory usage.
+- **Scalability:** Ray Serve provides robust scalability and flexible deployment options, supporting load balancing, parallel processing, and efficient resource utilization.
+- **Real-time Transcription:** The synergy enables low-latency processing ideal for live transcription applications.
+- **Ease of Deployment:** Leveraging Docker with Ray Serve simplifies containerization, orchestration, and maintenance of the service.
+- **Flexibility:** Both faster-whisper and Ray Serve support GPU acceleration and inference optimizations like quantization, making them suitable for diverse environments.
+
+For more details, please refer to:
+- [faster-whisper GitHub repository](https://github.com/SYSTRAN/faster-whisper)
+- [Ray Serve Advanced Guides](https://docs.ray.io/en/latest/serve/advanced-guides/multi-app-container.html) 
