@@ -1,71 +1,62 @@
-# Whisper Transcription Service
+# Whisper Service
 
-A distributed Whisper model serving system using Ray Serve and FastAPI. This service provides a scalable solution for audio transcription using OpenAI's Whisper model.
+A GPU-accelerated speech-to-text service using OpenAI's Whisper model (large-v3), implemented with Ray Serve and FastAPI.
 
 ## Features
 
-- Distributed model serving using Ray Serve
-- GPU acceleration support
-- Health checking and status monitoring
-- RESTful API interface
-- Docker containerization with CUDA support
+- Fast speech-to-text transcription using Whisper large-v3 model
+- GPU acceleration with CUDA support
+- Streaming capability
+- Containerized deployment with Docker
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- NVIDIA GPU with CUDA support
-- NVIDIA Container Toolkit
+- Docker with NVIDIA Container Runtime installed
+- NVIDIA GPU with appropriate drivers
+- Docker Compose
+- At least 10GB of GPU memory recommended
 
-## Setup
+## Quick Start
 
-1. Clone the repository:
+1. Pull the Docker image:
 ```bash
-git clone <repository-url>
-cd whisper_service
+docker pull dimadgo/ray_whisper:1
 ```
 
-2. Build and start the service:
+2. Start the service:
 ```bash
-docker-compose up --build
+docker-compose up
 ```
 
-The service will be available at `http://localhost:8000`
+The service will be available at `http://localhost:8033`
 
-## API Endpoints
+## API Usage
 
 ### Transcribe Audio
-```
-POST /api/v1/transcribe
-```
-Upload an audio file for transcription.
 
-### Check Status
-```
-GET /api/v1/status
-```
-Get the current status of the transcription service.
-
-### Health Check
-```
-GET /api/v1/health
-```
-Check if the service is healthy.
-
-## Example Usage
-
-Using curl to transcribe an audio file:
 ```bash
-curl -X POST http://localhost:8000/api/v1/transcribe \
-  -H "Content-Type: multipart/form-data" \
-  -F "audio_file=@path/to/audio.mp3"
+curl -X POST -H "Content-Type: application/octet-stream" --data-binary @your_audio_file.webm http://localhost:8033/
 ```
 
-## Configuration
+The service accepts audio files in various formats (webm, wav, mp3, etc.) and returns a JSON response with the transcription:
 
-The service can be configured through environment variables:
-- `RAY_ADDRESS`: Ray cluster address (default: "local")
-- GPU settings can be adjusted in the docker-compose.yml file
+```json
+{
+    "transcription": "Your transcribed text will appear here"
+}
+```
 
-## License
+## Testing
 
-[MIT License](LICENSE) 
+A test client and sample audio file are provided in the repository:
+
+```bash
+python test_client.py
+```
+
+## Notes
+
+- The service uses the Whisper large-v3 model for optimal transcription quality
+- GPU acceleration is required for reasonable performance
+- The service uses shared memory of 10.24GB to handle large audio files
+- Multiple GPU devices can be utilized by adjusting the `count` parameter in docker-compose.yml 

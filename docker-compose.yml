@@ -1,27 +1,20 @@
-version: '3.8'
-
 services:
-  whisper:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+  ray_serve:
+ #   build: .
+    image: ray_whisper:1
     ports:
       - "8033:8000"
-    environment:
-      - RAY_ADDRESS=local
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: 4
               capabilities: [gpu]
-    shm_size: '10gb'
+    environment:
+      - RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING=1 
+    shm_size: '10.24gb'
     volumes:
-      - ./app:/app/app
-    command: tail -f /dev/null
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8033/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3 
+      - ./:/app    # Maps current directory to /app in container
+    working_dir: /app
+    command: bash -c "cd /app && ray start --head && serve run --host 0.0.0.0 app:transcriber_app"

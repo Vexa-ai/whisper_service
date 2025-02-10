@@ -1,7 +1,8 @@
-tests/test_audio.webm
+test_audio.webm
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.pyw
 *.pyz
+.env
