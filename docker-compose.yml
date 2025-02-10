@@ -11,8 +11,8 @@ services:
             - driver: nvidia
               count: 4
               capabilities: [gpu]
-    environment:
-      - RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING=1 
+    env_file:
+      - .env
     shm_size: '10.24gb'
     volumes:
       - ./:/app    # Maps current directory to /app in container

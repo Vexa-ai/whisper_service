@@ -1,11 +1,25 @@
 import ray
 from ray import serve
-from fastapi import FastAPI, File, Request
+from fastapi import FastAPI, File, Request, HTTPException, Security, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from faster_whisper import WhisperModel
 import os
 import io
 
 app = FastAPI()
+security = HTTPBearer()
+
+# Get token from environment variable with a default value
+API_TOKEN = os.getenv("WHISPER_API_TOKEN", "default_token_change_me")
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
+    if credentials.credentials != API_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
 
 @serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 1, "num_gpus": 0.1})
 @serve.ingress(app)
@@ -19,7 +33,7 @@ class Transcriber:
         )
 
     @app.post("/")
-    async def transcribe(self, request: Request) -> dict:
+    async def transcribe(self, request: Request, authenticated: bool = Depends(verify_token)) -> dict:
         # Read raw bytes from request body
         audio_bytes = await request.body()
         segments, info = self.model.transcribe(
