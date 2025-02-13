@@ -9,8 +9,16 @@ import io
 app = FastAPI()
 security = HTTPBearer()
 
-# Get token from environment variable with a default value
+# Get configurations from environment variables
 API_TOKEN = os.getenv("WHISPER_API_TOKEN", "default_token_change_me")
+MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "large-v3")
+NUM_CPUS = float(os.getenv("WHISPER_NUM_CPUS", "1"))
+NUM_GPUS = float(os.getenv("WHISPER_NUM_GPUS", "0.1"))
+DEVICE = os.getenv("WHISPER_DEVICE", "cuda")
+COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "float16")
+BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "5"))
+VAD_FILTER = os.getenv("WHISPER_VAD_FILTER", "True").lower() == "true"
+VAD_THRESHOLD = float(os.getenv("WHISPER_VAD_THRESHOLD", "0.9"))
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
     if credentials.credentials != API_TOKEN:
@@ -21,15 +29,14 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
         )
     return True
 
-@serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 1, "num_gpus": 0.1})
+@serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": NUM_CPUS, "num_gpus": NUM_GPUS})
 @serve.ingress(app)
 class Transcriber:
     def __init__(self):
-        model_size = "large-v3"  # Using smaller model for testing
         self.model = WhisperModel(
-            model_size,
-            device="cuda",
-            compute_type="float16",
+            MODEL_SIZE,
+            device=DEVICE,
+            compute_type=COMPUTE_TYPE,
         )
 
     @app.post("/")
@@ -38,14 +45,12 @@ class Transcriber:
         audio_bytes = await request.body()
         segments, info = self.model.transcribe(
             io.BytesIO(audio_bytes),
-            beam_size=5,
-            vad_filter=True,
+            beam_size=BEAM_SIZE,
+            vad_filter=VAD_FILTER,
             word_timestamps=True,
-            vad_parameters={"threshold": 0.9},
+            vad_parameters={"threshold": VAD_THRESHOLD},
         )
-        # Convert segments to text
-        text = " ".join([segment.text for segment in segments])
-        return {"transcription": text}
+        return {"segments": segments}
 
 transcriber_app = Transcriber.bind()
 
