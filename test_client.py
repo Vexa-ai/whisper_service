@@ -35,3 +35,7 @@ if __name__ == "__main__":
     # Use the webm test file
     audio_file_path = "test_audio.webm"
     test_transcription(audio_file_path)
+    
+    
+#ray start --head --node-ip-address=0.0.0.0 --port=6379
+#serve deploy app:transcriber_app
