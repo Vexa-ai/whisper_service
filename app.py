@@ -8,7 +8,11 @@ import os
 import io
 import logging
 import time
+from logging.handlers import RotatingFileHandler
 
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 
 app = FastAPI()
@@ -35,17 +39,39 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
         )
     return True
 
-
-
-@serve.deployment(
-    name='transcriber',
-    num_replicas=NUM_REPLICAS,
-    ray_actor_options={"num_cpus": NUM_CPUS, "num_gpus": NUM_GPUS}
-)
+@serve.deployment(num_replicas=2, ray_actor_options={"num_cpus": 0, "num_gpus": 1})
 class Transcriber:
     def __init__(self):
+        # Set up logging
         self.logger = logging.getLogger("transcriber")
         self.logger.setLevel(logging.INFO)
+        
+        # Clear any existing handlers
+        self.logger.handlers = []
+        
+        # Create logs directory if it doesn't exist
+        log_directory = os.path.join(os.getcwd(), 'logs')
+        os.makedirs(log_directory, exist_ok=True)
+        log_file = os.path.join(log_directory, 'transcriber.log')
+        
+        # Create a file handler with proper permissions
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5,
+            mode='a'
+        )
+        formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        
+        # Also add a stream handler for console output
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+        
+        self.logger.info("Initializing Transcriber service")
+        
         self.model = WhisperModel(
             MODEL_SIZE,
             device=DEVICE,
@@ -54,6 +80,7 @@ class Transcriber:
         self.logger.info(f"Initialized Whisper model: {MODEL_SIZE} on {DEVICE} with {COMPUTE_TYPE}")
 
     def transcribe(self, audio_bytes: bytes, request_id: str) -> dict:
+        self.logger.info(f"[{request_id}] Starting transcription")
         transcribe_start = time.time()
         segments, info = self.model.transcribe(
             io.BytesIO(audio_bytes),

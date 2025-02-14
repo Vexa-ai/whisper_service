@@ -2,7 +2,7 @@
 
 # Start Ray
 echo "Starting Ray..."
-ray start --head --node-ip-address=0.0.0.0 --port=6379 --dashboard-host=0.0.0.0 --dashboard-port=8265
+ray start --head --node-ip-address=0.0.0.0 --port=6379 --dashboard-host=0.0.0.0 --dashboard-port=8265 
 
 # Deploy the service
 echo "Deploying the service..."
@@ -10,7 +10,7 @@ serve deploy app:transcriber_app
 
 # Check if deployment was successful with retries
 echo "Checking deployment status..."
-max_retries=30
+max_retries=10
 retry_count=0
 while [ $retry_count -lt $max_retries ]; do
     if serve status | grep -q "RUNNING"; then
@@ -18,7 +18,7 @@ while [ $retry_count -lt $max_retries ]; do
         break
     fi
     echo "Waiting for service to start... ($(($retry_count + 1))/$max_retries)"
-    sleep 2
+    sleep 1
     retry_count=$((retry_count + 1))
 done
 
@@ -33,5 +33,5 @@ while true; do
         echo "Service is no longer running!"
         exit 1
     fi
-    sleep 10
+    sleep 1
 done 
