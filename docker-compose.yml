@@ -1,33 +1,11 @@
-# services:
-#   ray_serve:
-#     image: ray_whisper:1.1
-#     ports:
-#       - "8033:8000"
-#     deploy:
-#       resources:
-#         reservations:
-#           devices:
-#             - driver: nvidia
-#               count: 4
-#               capabilities: [gpu]
-#     env_file:
-#       - .env
-#     shm_size: '10.24gb'
-#     volumes:
-#       - ./:/app    # Maps current directory to /app in container
-#     working_dir: /app
-#     command: bash -c "cd /app && ray start --head --node-ip-address=0.0.0.0 --port=6379 && serve deploy app:transcriber_app && tail -f /dev/null"
-
-
-
-
-
-#     #bash -c "cd /app && ray start --head && serve run --host 0.0.0.0 app:transcriber_app"
-
-
-# # docker compose up ray_serve serve run app:transcriber_app
 
 services:
+  redis:
+    image: redis:7.0
+
+    volumes:
+      - redis_data:/data
+
   ray_serve:
     image: ray_whisper:1.1
     ports:
@@ -40,6 +18,7 @@ services:
       - RAY_SERVE_HTTP_PORT=8000
       - SERVE_PROXY_HOST=0.0.0.0
       - SERVE_PROXY_PORT=8000
+      - REDIS_HOST=redis
     shm_size: '10.24gb'
     volumes:
       - ./:/app           # Maps current directory to /app in container
@@ -51,9 +30,14 @@ services:
             - driver: nvidia
               count: 4
               capabilities: [gpu]
-    command: ./start.sh
+    command: tail -f /dev/null  #./start.sh
+    depends_on:
+      - redis
 
 networks:
   whisper_network:
     name: whisper_network
     driver: bridge
+
+volumes:
+  redis_data:
