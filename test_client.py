@@ -19,7 +19,8 @@ def test_transcription(audio_file_path):
     }
     
     # Send the bytes directly with authentication
-    response = requests.post("http://127.0.0.1:8000/", data=audio_bytes, headers=headers)
+    params = {"initial_prompt": "This is an initial prompt", "prefix": "This is a prefix"}
+    response = requests.post("http://127.0.0.1:8000/", params=params, data=audio_bytes, headers=headers)
     
     if response.status_code == 401:
         print("Authentication failed - check your WHISPER_API_TOKEN")

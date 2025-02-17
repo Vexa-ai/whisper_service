@@ -79,7 +79,7 @@ class Transcriber:
         )
         self.logger.info(f"Initialized Whisper model: {MODEL_SIZE} on {DEVICE} with {COMPUTE_TYPE}")
 
-    def transcribe(self, audio_bytes: bytes, request_id: str) -> dict:
+    def transcribe(self, audio_bytes: bytes, request_id: str, initial_prompt: str = None, prefix: str = None) -> dict:
         self.logger.info(f"[{request_id}] Starting transcription")
         transcribe_start = time.time()
         segments, info = self.model.transcribe(
@@ -88,6 +88,8 @@ class Transcriber:
             vad_filter=VAD_FILTER,
             word_timestamps=True,
             vad_parameters={"threshold": VAD_THRESHOLD},
+            initial_prompt=initial_prompt,
+            prefix=prefix
         )
         transcribe_end = time.time()
         transcribe_duration = transcribe_end - transcribe_start
@@ -117,6 +119,8 @@ class Transcriber:
             # Read raw bytes from request body
             self.logger.info(f"[{request_id}] Starting request processing")
             audio_bytes = await request.body()
+            initial_prompt = request.query_params.get("initial_prompt")
+            prefix = request.query_params.get("prefix")
             body_read_time = time.time()
             audio_size = len(audio_bytes) / 1024  # Size in KB
             
@@ -126,7 +130,7 @@ class Transcriber:
             )
 
             # Get transcription
-            result = self.transcribe(audio_bytes, request_id)
+            result = self.transcribe(audio_bytes, request_id, initial_prompt, prefix)
             
             # Add timing information
             result["timing"]["request_id"] = request_id
