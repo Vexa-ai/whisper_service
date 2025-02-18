@@ -5,6 +5,9 @@ __pycache__/
 *.pyd
 *.pyw
 *.pyz
+*.mp3
+*.wav
+*.webm
 .env
 logs/transcriber.log
 17-02-2025 18:19.mp3
