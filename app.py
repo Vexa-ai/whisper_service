@@ -124,7 +124,7 @@ class Transcriber:
             initial_prompt = request.query_params.get("initial_prompt")
             prefix = request.query_params.get("prefix")
             language = request.query_params.get("language")
-            task = request.query_params.get("task")
+            task = request.query_params.get("task", "transcribe")
             body_read_time = time.time()
             audio_size = len(audio_bytes) / 1024  # Size in KB
             
