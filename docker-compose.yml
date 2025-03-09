@@ -1,38 +1,10 @@
-# services:
-#   ray_serve:
-#     image: ray_whisper:1.1
-#     ports:
-#       - "8033:8000"
-#     deploy:
-#       resources:
-#         reservations:
-#           devices:
-#             - driver: nvidia
-#               count: 4
-#               capabilities: [gpu]
-#     env_file:
-#       - .env
-#     shm_size: '10.24gb'
-#     volumes:
-#       - ./:/app    # Maps current directory to /app in container
-#     working_dir: /app
-#     command: bash -c "cd /app && ray start --head --node-ip-address=0.0.0.0 --port=6379 && serve deploy app:transcriber_app && tail -f /dev/null"
-
-
-
-
-
-#     #bash -c "cd /app && ray start --head && serve run --host 0.0.0.0 app:transcriber_app"
-
-
-# # docker compose up ray_serve serve run app:transcriber_app
 
 services:
   ray_serve:
-    image: ray_whisper:1.1
+    image: vexaai/ray-whisper:latest
     ports:
-      - "8033:8000"       # Main Serve API port
-      - "8265:8265"       # Ray dashboard port
+      - "${WHISPER_PORT}:8000"       # Main Serve API port
+      - "${RAY_DASHBOARD_PORT}:8265"       # Ray dashboard port
     env_file:
       - .env
     environment:
@@ -49,7 +21,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 4
+              count: ${SERVER_GPU_COUNT}
               capabilities: [gpu]
     command: ./start.sh
 
