@@ -14,6 +14,21 @@ import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
+# Configure root logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Debug: Log all Whisper-related environment variables at startup
+logger.info("==== WHISPER SERVICE ENVIRONMENT VARIABLES ====")
+for key, value in os.environ.items():
+    if key.startswith("WHISPER_"):
+        # Mask the token for security
+        if key == "WHISPER_API_TOKEN":
+            masked_value = value[:4] + "*" * (len(value) - 4) if len(value) > 4 else "****"
+            logger.info(f"{key}: {masked_value}")
+        else:
+            logger.info(f"{key}: {value}")
+logger.info("============================================")
 
 app = FastAPI()
 security = HTTPBearer()
@@ -29,6 +44,10 @@ BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "5"))
 VAD_FILTER = os.getenv("WHISPER_VAD_FILTER", "True").lower() == "true"
 VAD_THRESHOLD = float(os.getenv("WHISPER_VAD_THRESHOLD", "0.9"))
 NUM_REPLICAS = os.getenv("NUM_REPLICAS", "1")
+
+# Log the API token configuration (masked)
+masked_token = API_TOKEN[:4] + "*" * (len(API_TOKEN) - 4) if len(API_TOKEN) > 4 else "****"
+logger.info(f"API_TOKEN configured as: {masked_token}")
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
     if credentials.credentials != API_TOKEN:
@@ -107,14 +126,48 @@ class Transcriber:
     async def __call__(self, request: Request) -> dict:
         # Verify authentication
         auth_header = request.headers.get("Authorization")
-        if not auth_header or auth_header.split()[1] != API_TOKEN:
+        request_id = str(time.time())
+        
+        # Debug authentication
+        self.logger.info(f"[{request_id}] Auth header: {auth_header}")
+        self.logger.info(f"[{request_id}] Expected token: {API_TOKEN}")
+        
+        # More robust authentication check
+        if not auth_header:
+            self.logger.error(f"[{request_id}] Authentication failed: No Authorization header provided")
             raise HTTPException(
                 status_code=401,
-                detail="Invalid authentication token",
+                detail="Authentication required. Please provide a Bearer token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        try:
+            # Try to parse the authorization header
+            auth_parts = auth_header.split()
+            if len(auth_parts) != 2 or auth_parts[0].lower() != "bearer":
+                self.logger.error(f"[{request_id}] Authentication failed: Invalid Authorization format")
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid Authorization format. Expected 'Bearer TOKEN'",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            token = auth_parts[1]
+            if token != API_TOKEN:
+                self.logger.error(f"[{request_id}] Authentication failed: Invalid token")
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid authentication token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        except IndexError:
+            self.logger.error(f"[{request_id}] Authentication failed: Could not parse Authorization header")
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Authorization header format",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        request_id = str(time.time())
         start_time = time.time()
         
         try:
